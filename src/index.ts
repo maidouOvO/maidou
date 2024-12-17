@@ -1,10 +1,9 @@
-// Basic TypeScript entry point
-export type GreetingStyle = 'formal' | 'informal';
+type GreetingStyle = "formal" | "informal";
 
-export const greet = (
-  name: string,
-  style: GreetingStyle = 'informal'
-): string => {
-  const greeting = style === 'formal' ? 'Good day' : 'Hello';
-  return `${greeting}, ${name}!`;
-};
+export function createGreeting(name: string, style: GreetingStyle = "informal"): string {
+  const greetings = {
+    formal: `Good day, ${name}. How may I assist you?`,
+    informal: `Hey ${name}! What's up?`
+  };
+  return greetings[style];
+}
