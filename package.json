@@ -1,7 +1,16 @@
 {
+  "name": "maidou",
+  "version": "1.0.0",
+  "description": "TypeScript project with enhanced greeting functionality",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write .",
-    "lint": "eslint ."
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
   }
 }
