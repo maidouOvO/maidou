@@ -1,0 +1,8 @@
+com/maidou/pdf/PDFProcessor.class
+com/maidou/pdf/model/TextAlignment.class
+com/maidou/pdf/Main.class
+com/maidou/pdf/model/Rectangle.class
+com/maidou/pdf/PDFProcessor$CustomPDFTextStripper.class
+com/maidou/pdf/model/TextBox.class
+com/maidou/pdf/storage/MetadataStorage.class
+com/maidou/pdf/model/Color.class
