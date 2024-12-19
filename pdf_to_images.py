@@ -21,6 +21,46 @@ def extract_text_info(page: fitz.Page) -> List[Dict]:
                     })
     return text_blocks
 
+def sort_images(images: List[Dict]) -> List[Dict]:
+    """
+    Sort images by position (top-to-bottom, left-to-right).
+    """
+    y_threshold = 20  # Consider images within 20 pixels Y distance as same row
+    sorted_by_y = sorted(images, key=lambda x: x["bbox"][1])  # Sort by y0
+
+    # Group images by rows based on Y position
+    rows = []
+    current_row = []
+    last_y = None
+
+    for img in sorted_by_y:
+        if last_y is None or abs(img["bbox"][1] - last_y) <= y_threshold:
+            current_row.append(img)
+        else:
+            # Sort current row by X coordinate
+            current_row.sort(key=lambda x: x["bbox"][0])
+            rows.append(current_row)
+            current_row = [img]
+        last_y = img["bbox"][1]
+
+    if current_row:
+        current_row.sort(key=lambda x: x["bbox"][0])
+        rows.append(current_row)
+
+    # Flatten rows into final sorted list
+    return [img for row in rows for img in row]
+
+def draw_frame(draw: ImageDraw.Draw, bbox: Tuple[float, float, float, float], number: int) -> None:
+    """
+    Draw a frame around an image and add a number.
+    """
+    x0, y0, x1, y1 = bbox
+    # Draw rectangle frame
+    draw.rectangle([x0, y0, x1, y1], outline='red', width=2)
+    # Add number
+    font_size = 20
+    draw.text((x0, y0-font_size-5), str(number), fill='red', font_size=font_size)
+
 def convert_pdf_to_images(pdf_path: str, output_dir: str, bg_width: int = 800, bg_height: int = 1280) -> None:
     """
     Convert PDF pages to images with text, placing them on a blank background.
@@ -32,6 +72,7 @@ def convert_pdf_to_images(pdf_path: str, output_dir: str, bg_width: int = 800, b
 
     pdf_document = fitz.open(pdf_path)
     all_pages_text = {}
+    all_pages_images = {}
 
     for page_num in range(len(pdf_document)):
         page = pdf_document[page_num]
@@ -39,6 +80,18 @@ def convert_pdf_to_images(pdf_path: str, output_dir: str, bg_width: int = 800, b
         # Extract text information
         text_blocks = extract_text_info(page)
         all_pages_text[f"page_{page_num + 1:03d}"] = text_blocks
+
+        # Extract image information
+        image_list = []
+        for img in page.get_images():
+            xref = img[0]
+            bbox = page.get_image_bbox(xref)
+            if bbox:
+                image_list.append({"xref": xref, "bbox": bbox})
+
+        # Sort images by position
+        sorted_images = sort_images(image_list)
+        all_pages_images[f"page_{page_num + 1:03d}"] = sorted_images
 
         # Convert page to image
         pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
@@ -54,8 +107,20 @@ def convert_pdf_to_images(pdf_path: str, output_dir: str, bg_width: int = 800, b
         y_position = (bg_height - new_height) // 2
         background.paste(img, (0, y_position))
 
-        # Add page number
+        # Draw frames and numbers for images
         draw = ImageDraw.Draw(background)
+        for idx, img_info in enumerate(sorted_images, 1):
+            bbox = img_info["bbox"]
+            # Scale bbox coordinates
+            scaled_bbox = (
+                bbox[0] * scale,
+                bbox[1] * scale + y_position,
+                bbox[2] * scale,
+                bbox[3] * scale + y_position
+            )
+            draw_frame(draw, scaled_bbox, idx)
+
+        # Add page number
         page_text = f"Page {page_num + 1}"
         text_bbox = draw.textbbox((0, 0), page_text)
         text_width = text_bbox[2] - text_bbox[0]
@@ -67,10 +132,13 @@ def convert_pdf_to_images(pdf_path: str, output_dir: str, bg_width: int = 800, b
         output_path = os.path.join(output_dir, f'page_{page_num + 1:03d}.png')
         background.save(output_path, 'PNG')
 
-    # Save text information to JSON
+    # Save text and image information to JSON
     text_output_path = os.path.join(text_dir, 'text_coordinates.json')
     with open(text_output_path, 'w', encoding='utf-8') as f:
-        json.dump(all_pages_text, f, ensure_ascii=False, indent=2)
+        json.dump({
+            "text": all_pages_text,
+            "images": all_pages_images
+        }, f, ensure_ascii=False, indent=2)
 
     pdf_document.close()
 
