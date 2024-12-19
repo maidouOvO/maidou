@@ -14,6 +14,8 @@ import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
+import net.sourceforge.tess4j.TesseractException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -26,15 +28,51 @@ public class PDFProcessor {
     private static final float BORDER_RADIUS = 5.0f;
     private String currentBookId;
     private PDDocument document;
+    private final OCRProcessor ocrProcessor;
 
-    public PDFProcessor(String bookId) {
-        this.currentBookId = bookId;
+    public PDFProcessor() {
+        this.ocrProcessor = new OCRProcessor();
     }
 
-    public List<TextBox> processPage(PDDocument document, int pageNumber) throws IOException {
+    /**
+     * 处理MultipartFile格式的PDF文件
+     * @param file PDF文件
+     * @param bookId 书籍ID
+     * @return 所有页面的TextBox列表
+     * @throws IOException 如果文件处理失败
+     */
+    public List<List<TextBox>> processPDF(MultipartFile file, String bookId) throws IOException {
+        try (PDDocument doc = PDDocument.load(file.getInputStream())) {
+            this.document = doc;
+            this.currentBookId = bookId;
+            List<List<TextBox>> allPages = new ArrayList<>();
+
+            for (int i = 0; i < doc.getNumberOfPages(); i++) {
+                allPages.add(processPage(doc, i + 1, bookId));
+            }
+
+            return allPages;
+        }
+    }
+
+    public List<TextBox> processPage(PDDocument document, int pageNumber, String bookId) throws IOException {
         this.document = document;
+        this.currentBookId = bookId;
         PDPage page = document.getPage(pageNumber - 1);
+
+        // Extract text boxes from regular text
         List<TextBox> textBoxes = extractTextBoxes(page, pageNumber);
+
+        // Extract and process images with OCR
+        List<BufferedImage> images = extractImages(document);
+        for (BufferedImage image : images) {
+            try {
+                List<TextBox> ocrTextBoxes = ocrProcessor.extractTextFromImage(image, bookId, pageNumber);
+                textBoxes.addAll(ocrTextBoxes);
+            } catch (TesseractException e) {
+                e.printStackTrace();
+            }
+        }
 
         // Sort text boxes from top to bottom, left to right
         textBoxes.sort((a, b) -> {

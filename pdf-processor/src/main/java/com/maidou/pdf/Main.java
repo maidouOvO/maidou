@@ -26,11 +26,12 @@ public class Main {
             new File(outputDir).mkdirs();
 
             // 初始化处理器和存储
-            PDFProcessor processor = new PDFProcessor(bookId);
+            PDFProcessor processor = new PDFProcessor();
             MetadataStorage storage = new MetadataStorage(outputDir);
 
             // 打开PDF文件
-            try (PDDocument document = PDDocument.load(new File(inputPath))) {
+            File pdfFile = new File(inputPath);
+            try (PDDocument document = PDDocument.load(pdfFile)) {
                 System.out.println("Processing PDF: " + inputPath);
                 System.out.println("Total pages: " + document.getNumberOfPages());
 
@@ -39,7 +40,7 @@ public class Main {
                     System.out.println("\nProcessing page " + i);
 
                     // 提取和处理文本框
-                    List<TextBox> textBoxes = processor.processPage(document, i);
+                    List<TextBox> textBoxes = processor.processPage(document, i, bookId);
                     System.out.println("Found " + textBoxes.size() + " text boxes");
 
                     // 保存文本框元数据

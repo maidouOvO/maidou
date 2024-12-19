@@ -5,4 +5,5 @@ com/maidou/pdf/model/Rectangle.class
 com/maidou/pdf/PDFProcessor$CustomPDFTextStripper.class
 com/maidou/pdf/model/TextBox.class
 com/maidou/pdf/storage/MetadataStorage.class
+com/maidou/pdf/OCRProcessor.class
 com/maidou/pdf/model/Color.class

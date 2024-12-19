@@ -28,7 +28,7 @@ public class PDFProcessorTest {
 
     @Before
     public void setUp() throws IOException {
-        processor = new PDFProcessor(TEST_BOOK_ID);
+        processor = new PDFProcessor();
         document = createTestPDF();
     }
 
@@ -65,7 +65,7 @@ public class PDFProcessorTest {
 
     @Test
     public void testTextExtraction() throws IOException {
-        List<TextBox> textBoxes = processor.processPage(document, 1);
+        List<TextBox> textBoxes = processor.processPage(document, 1, TEST_BOOK_ID);
 
         assertNotNull("Text boxes should not be null", textBoxes);
         assertFalse("Text boxes should not be empty", textBoxes.isEmpty());
@@ -93,7 +93,7 @@ public class PDFProcessorTest {
     @Test
     public void testYellowBoxRendering() throws IOException {
         // Process the page which adds yellow boxes
-        List<TextBox> textBoxes = processor.processPage(document, 1);
+        List<TextBox> textBoxes = processor.processPage(document, 1, TEST_BOOK_ID);
 
         // Save the modified PDF to verify the changes were made
         File outputFile = tempFolder.newFile("test-output.pdf");
@@ -118,7 +118,7 @@ public class PDFProcessorTest {
     @Test
     public void testMetadataStorage() throws IOException {
         // Process the page
-        List<TextBox> textBoxes = processor.processPage(document, 1);
+        List<TextBox> textBoxes = processor.processPage(document, 1, TEST_BOOK_ID);
 
         // Create metadata storage
         File storageDir = tempFolder.newFolder("metadata");
