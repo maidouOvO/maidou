@@ -15,9 +15,11 @@ import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 import net.sourceforge.tess4j.TesseractException;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -162,6 +164,30 @@ public class PDFProcessor {
             }
         }
         return images;
+    }
+
+    /**
+     * 处理PDF文件并返回字节数组
+     * @param file PDF文件
+     * @param bookId 书籍ID
+     * @return 处理后的PDF文件字节数组
+     * @throws IOException 如果文件处理失败
+     */
+    public byte[] processPDFToBytes(MultipartFile file, String bookId) throws IOException {
+        try (PDDocument doc = PDDocument.load(file.getInputStream())) {
+            this.document = doc;
+            this.currentBookId = bookId;
+
+            // Process all pages
+            for (int i = 0; i < doc.getNumberOfPages(); i++) {
+                processPage(doc, i + 1, bookId);
+            }
+
+            // Save to byte array
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            doc.save(baos);
+            return baos.toByteArray();
+        }
     }
 
     private class CustomPDFTextStripper extends PDFTextStripper {
