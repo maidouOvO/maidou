@@ -67,12 +67,9 @@ def convert_pdf_to_images(pdf_path: str, output_dir: str, bg_width: int = 800, b
     Also extracts and saves text information with coordinates.
     """
     os.makedirs(output_dir, exist_ok=True)
-    text_dir = os.path.join(output_dir, "text_data")
-    os.makedirs(text_dir, exist_ok=True)
 
     pdf_document = fitz.open(pdf_path)
     all_pages_text = {}
-    all_pages_images = {}
 
     for page_num in range(len(pdf_document)):
         page = pdf_document[page_num]
@@ -84,14 +81,16 @@ def convert_pdf_to_images(pdf_path: str, output_dir: str, bg_width: int = 800, b
         # Extract image information
         image_list = []
         for img in page.get_images():
-            xref = img[0]
-            bbox = page.get_image_bbox(xref)
-            if bbox:
-                image_list.append({"xref": xref, "bbox": bbox})
+            try:
+                xref = img[0]
+                bbox = page.get_image_bbox(xref)
+                if bbox and all(isinstance(coord, (int, float)) for coord in bbox):
+                    image_list.append({"xref": xref, "bbox": bbox})
+            except (ValueError, TypeError, AttributeError) as e:
+                print(f"Warning: Could not process image on page {page_num + 1}: {e}")
 
         # Sort images by position
         sorted_images = sort_images(image_list)
-        all_pages_images[f"page_{page_num + 1:03d}"] = sorted_images
 
         # Convert page to image
         pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
@@ -132,13 +131,10 @@ def convert_pdf_to_images(pdf_path: str, output_dir: str, bg_width: int = 800, b
         output_path = os.path.join(output_dir, f'page_{page_num + 1:03d}.png')
         background.save(output_path, 'PNG')
 
-    # Save text and image information to JSON
-    text_output_path = os.path.join(text_dir, 'text_coordinates.json')
+    # Save text information to JSON in output directory
+    text_output_path = os.path.join(output_dir, 'text_data.json')
     with open(text_output_path, 'w', encoding='utf-8') as f:
-        json.dump({
-            "text": all_pages_text,
-            "images": all_pages_images
-        }, f, ensure_ascii=False, indent=2)
+        json.dump(all_pages_text, f, ensure_ascii=False, indent=2)
 
     pdf_document.close()
 
