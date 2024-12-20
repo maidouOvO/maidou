@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Preprocessor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>PDF Preprocessor</h1>
+        <div class="upload-section">
+            <input type="file" id="pdfInput" accept=".pdf" />
+            <button id="processButton">Process PDF</button>
+        </div>
+        <div class="options-section">
+            <div class="background-dimensions">
+                <label>Background Width:</label>
+                <input type="number" id="bgWidth" value="800" />
+                <label>Background Height:</label>
+                <input type="number" id="bgHeight" value="1280" />
+            </div>
+            <div class="processing-mode">
+                <label>Processing Mode:</label>
+                <select id="processingMode">
+                    <option value="single">Single Page Mode</option>
+                    <option value="paired">Paired Pages Mode</option>
+                </select>
+            </div>
+        </div>
+        <div id="status"></div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>

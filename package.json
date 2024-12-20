@@ -1,7 +1,40 @@
 {
+  "name": "pdf-preprocessor",
+  "version": "1.0.0",
+  "description": "PDF preprocessing tool with custom background and processing modes",
+  "main": "dist/main/index.js",
   "scripts": {
-    "build": "tsc",
+    "start": "electron .",
+    "build": "tsc && yarn copy-files",
+    "copy-files": "cp -r src/renderer dist/",
+    "package": "electron-builder",
     "format": "prettier --write .",
     "lint": "eslint ."
+  },
+  "build": {
+    "appId": "com.maidou.pdfpreprocessor",
+    "productName": "PDF Preprocessor",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable"
+    }
+  },
+  "dependencies": {
+    "electron": "^28.1.0",
+    "pdf-lib": "^1.17.1",
+    "sharp": "^0.33.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "electron-builder": "^24.9.1",
+    "typescript": "^5.3.3",
+    "prettier": "^3.1.1",
+    "eslint": "^8.56.0"
   }
 }
