@@ -1,5 +1,6 @@
 """Test cases for PDF processing routes."""
 import os
+import io
 import json
 from io import BytesIO
 
@@ -38,15 +39,14 @@ def test_process_pdf_single_page(client, sample_pdf):
     """Test single page PDF processing."""
     with open(sample_pdf, 'rb') as f:
         data = {
+            'file': (io.BytesIO(f.read()), 'test.pdf', 'application/pdf'),
             'process_type': 'single',
             'width': '800',
             'height': '1280'
         }
         response = client.post('/api/pdf/process', 
                              data=data,
-                             content_type='multipart/form-data',
-                             buffered=True,
-                             files={'file': (sample_pdf, f, 'application/pdf')})
+                             content_type='multipart/form-data')
         
         assert response.status_code == 200
         assert 'message' in response.json
@@ -58,15 +58,14 @@ def test_process_pdf_merged_pages(client, sample_pdf):
     """Test merged pages PDF processing."""
     with open(sample_pdf, 'rb') as f:
         data = {
+            'file': (io.BytesIO(f.read()), 'test.pdf', 'application/pdf'),
             'process_type': 'merged',
             'width': '800',
             'height': '1280'
         }
         response = client.post('/api/pdf/process',
                              data=data,
-                             content_type='multipart/form-data',
-                             buffered=True,
-                             files={'file': (sample_pdf, f, 'application/pdf')})
+                             content_type='multipart/form-data')
         
         assert response.status_code == 200
         assert 'message' in response.json
@@ -78,6 +77,7 @@ def test_process_pdf_with_blank_page(client, sample_pdf):
     """Test PDF processing with blank page addition."""
     with open(sample_pdf, 'rb') as f:
         data = {
+            'file': (io.BytesIO(f.read()), 'test.pdf', 'application/pdf'),
             'process_type': 'single',
             'width': '800',
             'height': '1280',
@@ -85,9 +85,7 @@ def test_process_pdf_with_blank_page(client, sample_pdf):
         }
         response = client.post('/api/pdf/process',
                              data=data,
-                             content_type='multipart/form-data',
-                             buffered=True,
-                             files={'file': (sample_pdf, f, 'application/pdf')})
+                             content_type='multipart/form-data')
         
         assert response.status_code == 200
         assert 'message' in response.json
@@ -99,14 +97,13 @@ def test_process_pdf_invalid_blank_page_position(client, sample_pdf):
     """Test PDF processing with invalid blank page position."""
     with open(sample_pdf, 'rb') as f:
         data = {
+            'file': (io.BytesIO(f.read()), 'test.pdf', 'application/pdf'),
             'process_type': 'single',
             'blank_page': 'invalid'
         }
         response = client.post('/api/pdf/process',
                              data=data,
-                             content_type='multipart/form-data',
-                             buffered=True,
-                             files={'file': (sample_pdf, f, 'application/pdf')})
+                             content_type='multipart/form-data')
         
         assert response.status_code == 400
         assert 'error' in response.json
