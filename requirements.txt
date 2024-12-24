@@ -1,4 +1,14 @@
+<<<<<<< HEAD
 PyMuPDF==1.23.26
 pandas==2.2.1
 Pillow==10.2.0
 fpdf==1.7.2
+||||||| (empty tree)
+=======
+PyPDF2==3.0.1
+reportlab==4.0.8
+Pillow==10.1.0
+Flask==3.0.0
+python-dotenv==1.0.0
+Werkzeug==3.0.1
+>>>>>>> 2d8a54e (feat: Initial setup of PDF preprocessing project with Flask integration)
