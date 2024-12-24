@@ -45,6 +45,7 @@ class PDFProcessor:
             # Create a blank page using reportlab
             packet = io.BytesIO()
             can = canvas.Canvas(packet, pagesize=(612, 792))  # Standard letter size
+            can.showPage()  # Required to actually create the page
             can.save()
             packet.seek(0)
             blank_page = PyPDF2.PdfReader(packet).pages[0]
