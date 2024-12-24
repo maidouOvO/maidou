@@ -47,7 +47,7 @@ def process_pdf():
         file.save(upload_path)
         
         # Initialize processor with configuration
-        config = BackgroundConfig(resolution=(width, height))
+        config = BackgroundConfig(width=width, height=height)
         processor = PDFProcessor(config)
         
         # Add blank page if requested
