@@ -37,3 +37,4 @@ yarn-error.log*
 
 # Logs
 *.log
+package-lock.json\nyarn.lock
