@@ -1,0 +1,8 @@
+图像: page_6_right.jpg
+类型: watercolor
+特征:
+  edge_density: 0.028574062630813083
+  color_diversity: 0.5
+  texture_mean: 12.725615942751212
+  is_gradient: False
+  is_watercolor: False

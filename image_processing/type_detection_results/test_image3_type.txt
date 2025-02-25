@@ -1,0 +1,8 @@
+图像: test_image3.png
+类型: complex
+特征:
+  edge_density: 0.24585
+  color_diversity: 1.0
+  texture_mean: 71.88092916666666
+  is_gradient: False
+  is_watercolor: False

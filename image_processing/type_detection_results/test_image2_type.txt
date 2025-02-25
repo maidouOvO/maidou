@@ -1,0 +1,8 @@
+图像: test_image2.png
+类型: gradient
+特征:
+  edge_density: 0.005129166666666666
+  color_diversity: 1.0
+  texture_mean: 2.001545833333333
+  is_gradient: False
+  is_watercolor: False

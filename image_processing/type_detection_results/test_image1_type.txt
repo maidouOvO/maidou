@@ -1,0 +1,8 @@
+图像: test_image1.png
+类型: simple
+特征:
+  edge_density: 0.00403125
+  color_diversity: 0.027777777777777776
+  texture_mean: 2.0218583333333333
+  is_gradient: False
+  is_watercolor: False

@@ -1,0 +1,8 @@
+图像: page_17_left.jpg
+类型: watercolor
+特征:
+  edge_density: 0.054660932485498435
+  color_diversity: 0.5555555555555556
+  texture_mean: 20.398871269958338
+  is_gradient: False
+  is_watercolor: False

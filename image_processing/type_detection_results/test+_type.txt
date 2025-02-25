@@ -1,0 +1,8 @@
+图像: test+.jpg
+类型: watercolor
+特征:
+  edge_density: 0.02829718655957046
+  color_diversity: 0.5277777777777778
+  texture_mean: 7.832215597869623
+  is_gradient: False
+  is_watercolor: True
