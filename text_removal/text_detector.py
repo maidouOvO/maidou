@@ -1,15 +1,7 @@
 import os
 import numpy as np
 import cv2
-import torch
-import torch.nn as nn
-import torch.backends.cudnn as cudnn
-from torch.autograd import Variable
 from collections import OrderedDict
-
-from craft.craft import CRAFT
-from craft.craft_utils import getDetBoxes, adjustResultCoordinates
-from craft.imgproc import resize_aspect_ratio, normalizeMeanVariance, cvt2HeatmapImg
 
 class TextDetector:
     def __init__(self, 
@@ -22,17 +14,17 @@ class TextDetector:
                  mag_ratio=1.5,
                  poly=False):
         """
-        初始化CRAFT文本检测器
+        初始化文本检测器
         
         Args:
-            trained_model: 预训练模型路径
+            trained_model: 预训练模型路径（不使用）
             text_threshold: 文本置信度阈值
             low_text: 文本低边界分数
             link_threshold: 链接置信度阈值
-            cuda: 是否使用CUDA进行推理
-            canvas_size: 推理图像大小
-            mag_ratio: 图像放大比例
-            poly: 是否启用多边形类型
+            cuda: 是否使用CUDA进行推理（不使用）
+            canvas_size: 推理图像大小（不使用）
+            mag_ratio: 图像放大比例（不使用）
+            poly: 是否启用多边形类型（不使用）
         """
         self.text_threshold = text_threshold
         self.low_text = low_text
@@ -42,23 +34,8 @@ class TextDetector:
         self.mag_ratio = mag_ratio
         self.poly = poly
         
-        # 初始化网络
-        self.net = CRAFT()
-        
-        # 加载预训练模型
-        if os.path.isfile(trained_model):
-            print(f'Loading weights from checkpoint ({trained_model})')
-            if self.cuda:
-                self.net.load_state_dict(self._copy_state_dict(torch.load(trained_model)))
-                self.net = self.net.cuda()
-                self.net = torch.nn.DataParallel(self.net)
-                cudnn.benchmark = False
-            else:
-                self.net.load_state_dict(self._copy_state_dict(torch.load(trained_model, map_location='cpu')))
-            
-            self.net.eval()
-        else:
-            print(f"No checkpoint found at '{trained_model}'")
+        # 注意：我们使用简化版本的文本检测，不需要加载CRAFT模型
+        print("使用简化版本的文本检测器，不加载CRAFT模型")
     
     def _copy_state_dict(self, state_dict):
         """
@@ -76,7 +53,7 @@ class TextDetector:
     
     def detect(self, image):
         """
-        检测图像中的文本区域
+        检测图像中的文本区域，特别优化用于检测大字体文本
         
         Args:
             image: 输入图像 (BGR格式)
@@ -86,45 +63,100 @@ class TextDetector:
             polys: 文本多边形
             score_text: 文本得分热图
         """
-        # 调整图像大小
-        img_resized, target_ratio, _ = resize_aspect_ratio(image, 
-                                                          self.canvas_size, 
-                                                          interpolation=cv2.INTER_LINEAR, 
-                                                          mag_ratio=self.mag_ratio)
-        ratio_h = ratio_w = 1 / target_ratio
+        h, w = image.shape[:2]
         
-        # 预处理
-        x = normalizeMeanVariance(img_resized)
-        x = torch.from_numpy(x).permute(2, 0, 1)    # [h, w, c] to [c, h, w]
-        x = Variable(x.unsqueeze(0))                # [c, h, w] to [b, c, h, w]
-        if self.cuda:
-            x = x.cuda()
+        # 创建边界框和多边形列表
+        boxes = []
+        polys = []
         
-        # 前向传播
-        with torch.no_grad():
-            y, _ = self.net(x)
+        # 转换为灰度图像
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-        # 生成得分图和链接图
-        score_text = y[0,:,:,0].cpu().data.numpy()
-        score_link = y[0,:,:,1].cpu().data.numpy()
+        # 使用多种阈值处理方法来增强文本检测能力
         
-        # 后处理
-        boxes, polys = getDetBoxes(score_text, score_link, 
-                                  self.text_threshold, 
-                                  self.link_threshold, 
-                                  self.low_text, 
-                                  self.poly)
+        # 1. 使用自适应阈值处理 - 适用于小字体文本
+        binary1 = cv2.adaptiveThreshold(
+            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+            cv2.THRESH_BINARY_INV, 15, 5
+        )
         
-        # 坐标调整
-        boxes = adjustResultCoordinates(boxes, ratio_w, ratio_h)
-        polys = adjustResultCoordinates(polys, ratio_w, ratio_h)
-        for k in range(len(polys)):
-            if polys[k] is None: 
-                polys[k] = boxes[k]
+        # 2. 使用自适应阈值处理 - 使用更大的块大小，适用于大字体文本
+        binary2 = cv2.adaptiveThreshold(
+            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+            cv2.THRESH_BINARY_INV, 25, 10
+        )
         
-        # 渲染结果
-        render_img = score_text.copy()
-        render_img = np.hstack((render_img, score_link))
-        ret_score_text = cvt2HeatmapImg(render_img)
+        # 3. 使用Otsu阈值处理 - 适用于高对比度文本
+        _, binary3 = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         
-        return boxes, polys, ret_score_text
+        # 4. 使用固定阈值处理 - 适用于某些特定场景
+        _, binary4 = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY_INV)
+        
+        # 合并二值图像
+        binary = cv2.bitwise_or(binary1, binary2)
+        binary = cv2.bitwise_or(binary, binary3)
+        binary = cv2.bitwise_or(binary, binary4)
+        
+        # 应用形态学操作以增强文本区域
+        # 使用更大的核和更多的迭代次数来处理大字体文本
+        kernel = np.ones((7, 7), np.uint8)  # 增大核大小
+        binary = cv2.dilate(binary, kernel, iterations=3)  # 增加迭代次数
+        binary = cv2.erode(binary, kernel, iterations=1)
+        
+        # 应用闭操作以填充大字体文本中的空洞
+        close_kernel = np.ones((15, 15), np.uint8)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, close_kernel)
+        
+        # 查找轮廓
+        contours, _ = cv2.findContours(
+            binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        
+        # 处理每个轮廓
+        for contour in contours:
+            # 计算轮廓面积
+            area = cv2.contourArea(contour)
+            
+            # 过滤掉太小的轮廓，但允许更大的轮廓通过（适用于大字体文本）
+            if area < 50:  # 降低最小面积阈值
+                continue
+            
+            # 获取轮廓的边界框
+            x, y, w, h = cv2.boundingRect(contour)
+            
+            # 计算纵横比
+            aspect_ratio = float(w) / h if h > 0 else 0
+            
+            # 放宽纵横比限制，以适应更多形状的文本
+            if aspect_ratio < 0.05 or aspect_ratio > 20:
+                continue
+            
+            # 计算轮廓的实心度（轮廓面积与其边界矩形面积之比）
+            rect_area = w * h
+            solidity = float(area) / rect_area if rect_area > 0 else 0
+            
+            # 过滤掉实心度太低的轮廓（通常不是文本）
+            if solidity < 0.1:
+                continue
+            
+            # 创建边界框
+            box = np.array([[x, y], [x+w, y], [x+w, y+h], [x, y+h]], dtype=np.float32)
+            boxes.append(box)
+            
+            # 进行多边形近似
+            epsilon = 0.02 * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+            approx = approx.reshape(-1, 2).astype(np.float32)
+            
+            # 添加多边形
+            polys.append(approx)
+        
+        # 创建得分热图
+        score_text = np.zeros((h, w), dtype=np.float32)
+        
+        # 在得分热图上绘制轮廓
+        for poly in polys:
+            if poly is not None and len(poly) > 0:
+                cv2.fillPoly(score_text, [poly.astype(np.int32)], 1.0)
+        
+        return boxes, polys, score_text
