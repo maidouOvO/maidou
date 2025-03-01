@@ -180,7 +180,7 @@ class CraftIntegratedPipeline:
                 result_stats['failed'] += 1
         
         # 计算处理时间
-        result_stats['processing_time'] = float(time.time() - start_time)
+        result_stats['processing_time'] = time.time() - start_time
         
         return result_stats
     
